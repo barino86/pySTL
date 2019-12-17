@@ -9,7 +9,7 @@ class TestpySTL(unittest.TestCase):
 
     def test_run(self):
         period = 4
-        s_window = 'periodic'
+        s_window = 2
 
         out = pySTL(self.data, period, s_window)
         print(out)

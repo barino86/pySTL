@@ -1,6 +1,9 @@
+from typing import List, Tuple
+
 import pandas as pd
 from math import sqrt, ceil
-from typing import List, Tuple
+from statistics import mean
+from itertools import cycle, groupby
 
 
 def next_odd(x):
@@ -327,8 +330,7 @@ def stl(y: List, n: int, np: int, ns: int, nt: int, nl: int, isdeg: int, itdeg: 
     final = {
         'original': [float(x) for x in y_to_return],
         'seasonal': [x for x in season[1:]],
-        'trend': [x for x in trend[1:]],
-        'robust_weights': [x for x in rw[1:]]
+        'trend': [x for x in trend[1:]]
     }
 
     return final
@@ -345,7 +347,7 @@ def pySTL(x, period, s_window, s_degree=None, t_window=None, t_degree=None, l_wi
     # Check for 'periodic' s_window value
     periodic = False
     if isinstance(s_window, str):
-        if s_window != 'periodic':
+        if s_window.lower() != 'periodic':
             raise ValueError("Unknown string value for s_window")
         else:
             periodic = True
@@ -358,33 +360,34 @@ def pySTL(x, period, s_window, s_degree=None, t_window=None, t_degree=None, l_wi
     l_degree = deg_check(l_degree)
 
     # Set Defaults
-    s_degree = 0 if not s_degree else s_degree
-    t_window = next_odd(ceil(1.5 * period/(1 - 1.5/s_window))) if not t_window else t_window
-    t_degree = 1 if not t_degree else t_degree
-    l_window = next_odd(period) if not l_window else l_window
-    l_degree = t_degree if not l_degree else l_degree
-    s_jump = ceil(s_window/10) if not s_jump else s_jump
-    t_jump = ceil(t_window/10) if not t_jump else t_jump
-    l_jump = ceil(l_window/10) if not l_jump else l_jump
-    if robust:
-        inner = 1
-        outer = 15
+    s_degree = s_degree or 0
+    t_window = t_window or next_odd(ceil(1.5 * period/(1 - 1.5/s_window)))
+    t_degree = t_degree or 1
+    l_window = l_window or next_odd(period)
+    l_degree = l_degree or t_degree
+    s_jump = s_jump or ceil(s_window/10)
+    t_jump = t_jump or ceil(t_window/10)
+    l_jump = l_jump or ceil(l_window/10)
 
-    out = stl(x, n, period, s_window, t_window, l_window,
+    if robust:
+        inner, outer = 1, 15
+
+    out = stl(x, n, period,
+              s_window, t_window, l_window,
               s_degree, t_degree, l_degree,
               s_jump, t_jump, l_jump,
               inner, outer)
 
-    # TODO: Still need to figure out the final "periodic" piece from the R pacakge.
-    """
-      if (periodic) {
-        which.cycle <- cycle(x)
-        z$seasonal <- tapply(z$seasonal, which.cycle, mean)[which.cycle]
-      }
-      remainder <- as.vector(x) - z$seasonal - z$trend
-    """
+    if periodic:
+        which_cycle = list(zip(cycle(range(period)), out['seasonal']))
+        agg = groupby(sorted(which_cycle, key=lambda x: x[0]), key=lambda x: x[0])
+        agg_dict = {k: mean(x for _, x in group) for k, group in agg}
+        out['seasonal'] = [agg_dict[x[0]] for x in which_cycle]
 
-    final = pd.DataFrame(out, columns=['original', 'seasonal', 'trend', 'robust_weights'])
+    final = pd.DataFrame(out, columns=['original', 'seasonal', 'trend'])
+
+    final['remainder'] = final['original'] - final['seasonal'] - final['trend']
+    final_cols = ['seasonal', 'trend', 'remainder']
+    final = final[final_cols].copy()
 
     return final
-
