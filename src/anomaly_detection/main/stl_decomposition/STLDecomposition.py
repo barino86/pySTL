@@ -1,10 +1,11 @@
-from typing import List, Tuple, Union, Any, Iterable
+from typing import List, Tuple, Union, Iterable
 
 import pandas as pd
 from math import sqrt, ceil
 from statistics import mean
 from itertools import cycle, groupby
-from main.models import STLDecomp
+
+from anomaly_detection.main.models import STLDecomp
 
 
 def next_odd(x) -> int:
@@ -374,63 +375,3 @@ class STLDecomposition(object):
                 ys += w[j]*y[j]
 
         return ys, ok
-
-    # def _build_plot(self, x_axis: List[Any] = None):
-    #     import matplotlib.pyplot as plt
-    #     from pandas._libs.tslibs.timestamps import Timestamp
-    #
-    #     x_axis_is_ts = False
-    #     fmt = None
-    #     gran = None
-    #     if x_axis and isinstance(x_axis[0], Timestamp):
-    #         import matplotlib.dates as mdates
-    #         fmt = mdates.DateFormatter('%Y-%m-%d')
-    #         x_axis_is_ts = True
-    #         gran, period = get_gran_and_period(x_axis[0])
-    #         # bar_width = () if gran in []
-    #
-    #     plt.style.use('ggplot')
-    #
-    #     x_axis = x_axis or list(range(self.stl_data.shape[0]))
-    #     fig, (raw, seas, trend, rem) = plt.subplots(nrows=4, ncols=1, figsize=(7, 8), sharex=True)
-    #
-    #     # Build Raw Plot
-    #     raw.plot(x_axis, self.stl_data['original'], color="#00AED9", linewidth=1)
-    #     max_seas = max(self.stl_data['seasonal'])
-    #     max_seas_idxs = list(self.stl_data.loc[self.stl_data['seasonal'] == max_seas, :].index)
-    #     for i, index in enumerate(max_seas_idxs):
-    #         raw.scatter(x_axis[index], self.stl_data['original'][index], marker=".", color="#FEB948", s=30)
-    #         if i % 2 == 0:
-    #             raw.annotate(f"{self.stl_data['original'][index]:.0f}",
-    #                          (x_axis[index], self.stl_data['original'][index]),
-    #                          textcoords="offset points",
-    #                          xytext=(0, 5),
-    #                          ha='center',
-    #                          size=8,
-    #                          color="#184C6D")
-    #     raw.set_ylabel("raw")
-    #
-    #     # Build Seasonal Plot
-    #     seas.plot(x_axis, self.stl_data['seasonal'], color="#184C6D")
-    #     seas.set_ylabel("seasonal")
-    #
-    #     # Build Trend Plot
-    #     trend.plot(x_axis, self.stl_data['trend'], color="#00AED9")
-    #     trend.set_ylabel("trend")
-    #
-    #     # Build remainder Plot
-    #     rem.bar(x_axis, self.stl_data['remainder'], width=0.1)
-    #     rem.set_ylabel("remainder")
-    #     if x_axis_is_ts and fmt:
-    #         rem.xaxis.set_major_formatter(fmt)
-    #         fig.autofmt_xdate()
-    #     return fig
-    #
-    # def display_plot(self, x_axis: List[Any] = None) -> None:
-    #     fig = self._build_plot(x_axis)
-    #     fig.show()
-    #
-    # def save_plot(self, x_axis: List[Any] = None, image_path: str = None) -> None:
-    #     fig = self._build_plot(x_axis)
-    #     fig.savefig(image_path)
-    #     print(f"Plot Saved to '{image_path}'")

@@ -5,9 +5,9 @@ import pandas as pd
 import datetime as dt
 from math import floor, sqrt
 
-from main.utils import get_gran_and_period, mad
-from main.stl.STLDecomposition import STLDecomposition
-from main import models
+from anomaly_detection.main import models
+from anomaly_detection.main.utils import get_gran_and_period, mad
+from anomaly_detection.main.stl_decomposition.STLDecomposition import STLDecomposition
 
 
 def calculate_e_value(df: pd.DataFrame, calc='orig', weights=None) -> pd.Series:
@@ -337,7 +337,7 @@ class AnomalyDetection(object):
 
         # Build out_labeled and attach anomaly labels. Where not labeled, set to 'Normal'
         out_labeled = all_data_decomp[['timestamp', 'value', 'e_value']].copy()
-        out_labeled.merge(out_anoms[['timestamp', 'label']], how='left', on='timestamp')
+        out_labeled = out_labeled.merge(out_anoms[['timestamp', 'label']], how='left', on='timestamp')
         out_labeled.loc[pd.isnull(out_labeled['label']), 'label'] = 'Normal'
 
         return models.AnomDetect(
@@ -352,13 +352,4 @@ class AnomalyDetection(object):
 
     def from_vector(self, vec, direction, longterm, periods_in_longterm, e_value_calc, data_seasonal):
         pass
-
-
-
-data_path = '/Users/brandonarino/Desktop/test_hourly.csv'
-data = pd.read_csv(data_path)
-
-ad = AnomalyDetection(direction='both', threshold='None').from_dataframe(data)
-ad.stl.display_plot()
-
 

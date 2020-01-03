@@ -1,7 +1,7 @@
-from typing import Union, List, Any, Iterable
+from typing import Union
 
 import pandas as pd
-from main.utils import get_gran_and_period
+from anomaly_detection.main.utils import get_gran_and_period
 
 
 class STLDecomp(object):
@@ -108,10 +108,41 @@ class AnomDetect(object):
         self.stl: STLDecomp = stl
 
     def _build_plot(self):
-        pass
+        import matplotlib.pyplot as plt
+        from pandas._libs.tslibs.timestamps import Timestamp
+        fig, ax = plt.subplots(figsize=(8, 6))
+
+        ax.plot(self.labeled_data['timestamp'], self.labeled_data['value'], color="#00AED9", linewidth=1, zorder=1)
+        for ix, row in enumerate(self.labeled_data.itertuples(index=False)):
+
+            # Anomaly points
+            if row.label != 'Normal':
+                ax.scatter(row.timestamp, row.value,
+                           marker=".", color=("#6A9C00" if row.label == 'High' else "#D45756"),
+                           edgecolors="#184C6D", s=100, zorder=2, alpha=0.8)
+                ax.annotate(f"{row.value:.0f}", (row.timestamp, row.value),
+                            textcoords="offset points", xytext=(-15, 0), ha='center', size=8, alpha=.7)
+
+            # Every 10 points if the point is not an anomaly
+            elif ix % 10 == 0:
+                ax.scatter(row.timestamp, row.value, marker=".", color="#FEB948", s=80, zorder=2)
+                ax.annotate(f"{row.value:.0f}", (row.timestamp, row.value),
+                            textcoords="offset points", xytext=(0, 5), ha='center', size=6, color="#184C6D")
+
+        # format x axis if x axis is timestamp
+        if isinstance(self.labeled_data['timestamp'][0], Timestamp):
+            import matplotlib.dates as mdates
+            fmt = mdates.DateFormatter('%Y-%m-%d')
+            ax.xaxis.set_major_formatter(fmt)
+            fig.autofmt_xdate()
+
+        return fig
 
     def display_plot(self) -> None:
-        pass
+        fig = self._build_plot()
+        fig.show()
 
     def save_plot(self, image_path: str = None) -> None:
-        pass
+        fig = self._build_plot()
+        fig.savefig(image_path)
+        print(f"Plot Saved to '{image_path}'")

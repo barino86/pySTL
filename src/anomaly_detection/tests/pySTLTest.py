@@ -1,5 +1,5 @@
 import unittest
-from main.stl.STLDecomposition import STLDecomposition
+from stl import STLDecomposition
 
 
 class TestpySTL(unittest.TestCase):

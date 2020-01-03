@@ -1,0 +1,5 @@
+__title__ = "anomaly-detection"
+__description__ = "Customized python port of Twitter's R Anomaly Detection"
+__version__ = "0.1.0"
+__author__ = "Brandon Arino"
+__author_email__ = "brandon.arino@carvana.com"
