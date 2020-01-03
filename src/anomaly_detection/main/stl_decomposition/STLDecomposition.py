@@ -32,9 +32,9 @@ def p_sort(a: List) -> Tuple:
     if n < 2:
         raise ValueError("Length of List must be larger than 1.")
     elif n % 2 == 0:
-        return tuple([list_sorted[int(n/2)], list_sorted[int((n/2)-1)]])
+        return tuple([list_sorted[int(n / 2)], list_sorted[int((n / 2) - 1)]])
     else:
-        return tuple([list_sorted[n//2], list_sorted[n//2]])
+        return tuple([list_sorted[n // 2], list_sorted[n // 2]])
 
 
 class STLDecomposition(object):
@@ -81,7 +81,7 @@ class STLDecomposition(object):
 
         # Check Windows
         self._s_window: int = (10 * self.n + 1) if self.periodic else kwargs.get('s_window')
-        self._t_window: int = kwargs.get('t_window', next_odd(ceil(1.5 * self.period/(1 - 1.5/self._s_window))))
+        self._t_window: int = kwargs.get('t_window', next_odd(ceil(1.5 * self.period / (1 - 1.5 / self._s_window))))
         self._l_window: int = kwargs.get('l_window', next_odd(self.period))
 
         if not self._s_window:
@@ -124,7 +124,7 @@ class STLDecomposition(object):
             if k > self.outer:
                 break
 
-            for i in range(1, self.n+1):
+            for i in range(1, self.n + 1):
                 work[0][i] = trend[i]+season[i]
 
             self.stl_rwt(work[0], robust_weights)
@@ -153,34 +153,38 @@ class STLDecomposition(object):
     def stl_stp(self, use_robust_weights: bool, robust_weights: List, season: List, trend: List, work: List):
 
         for j in range(1, self.inner + 1):
-            for i in range(1, self.n+1):
-                work[0][i] = self.series[i-1] - trend[i]
+            for i in range(1, self.n + 1):
+                work[0][i] = self.series[i - 1] - trend[i]
 
             self.stl_ss(work[0], use_robust_weights, robust_weights, work[1], work[2], work[3], work[4], season)
             self.stl_fts(work[1], (self.n + (2 * self.period)), work[2], work[0])
-            self.stl_ess(work[2], self.n, self._l_window, self._l_degree, self._l_jump, False, work[3], work[0], work[4])
+            self.stl_ess(
+                work[2], self.n, self._l_window, self._l_degree, self._l_jump, False, work[3], work[0], work[4]
+            )
 
-            for i in range(1, self.n+1):
+            for i in range(1, self.n + 1):
                 season[i] = work[1][self.period + i] - work[0][i]
 
-            for i in range(1, self.n+1):
-                work[0][i] = self.series[i-1] - season[i]
+            for i in range(1, self.n + 1):
+                work[0][i] = self.series[i - 1] - season[i]
 
-            self.stl_ess(work[0], self.n, self._t_window, self._t_degree, self._t_jump,
-                         use_robust_weights, robust_weights, trend, work[2])
+            self.stl_ess(
+                work[0], self.n, self._t_window, self._t_degree, self._t_jump,
+                use_robust_weights, robust_weights, trend, work[2]
+            )
 
     def stl_rwt(self, fit: List, robust_weights: List):
         """ Complete - Don't need to return anything, just altering robust_weights list """
 
-        for i in range(1, self.n+1):
-            robust_weights[i] = abs(self.series[i-1] - fit[i])
+        for i in range(1, self.n + 1):
+            robust_weights[i] = abs(self.series[i - 1] - fit[i])
 
         mid1, mid2 = p_sort(robust_weights[1:])
         cmad = 3.0 * (mid1 + mid2)
-        c9 = 0.999*cmad
-        c1 = 0.001*cmad
-        for i in range(1, self.n+1):
-            r = abs(self.series[i-1] - fit[i])
+        c9 = 0.999 * cmad
+        c1 = 0.001 * cmad
+        for i in range(1, self.n + 1):
+            r = abs(self.series[i - 1] - fit[i])
             if r <= c1:
                 robust_weights[i] = 1.0
             elif r <= c9:
@@ -208,7 +212,7 @@ class STLDecomposition(object):
         if new_n > 1:
             k = length
             m = 0
-            for j in range(2, new_n+1):
+            for j in range(2, new_n + 1):
                 k += 1
                 m += 1
                 v = v - x[m] + x[k]
@@ -228,13 +232,18 @@ class STLDecomposition(object):
                 for i in range(1, (k + 1)):
                     work3[i] = robust_weights[(i - 1) * self.period + j]
 
-            ys = self.stl_ess(work1, k, self._s_window, self._s_degree, self._s_jump, use_robust_weights, work3, work2[2:], work4)
+            ys = self.stl_ess(
+                work1, k, self._s_window, self._s_degree, self._s_jump, use_robust_weights, work3, work2[2:], work4
+            )
+
             for i in range(2, len(work2)):
                 work2[i] = ([0] + ys + [0])[i]
 
             xs = 0
             nright = min(self._s_window, k)
-            ys, ok = self.stl_est(work1, k, self._s_window, self._s_degree, xs, work2[1], 1, nright, work4, use_robust_weights, work3)
+            ys, ok = self.stl_est(
+                work1, k, self._s_window, self._s_degree, xs, work2[1], 1, nright, work4, use_robust_weights, work3
+            )
             work2[1] = ys
 
             if not ok:
@@ -242,14 +251,16 @@ class STLDecomposition(object):
 
             xs = k+1
             nleft = max(1, k - self._s_window + 1)
-            ys, ok = self.stl_est(work1, k, self._s_window, self._s_degree, xs, work2[k + 2], nleft, k, work4, use_robust_weights, work3)
+            ys, ok = self.stl_est(
+                work1, k, self._s_window, self._s_degree, xs, work2[k + 2], nleft, k, work4, use_robust_weights, work3
+            )
             work2[k+2] = ys
 
             if not ok:
-                work2[k+2] = work2[k+1]
+                work2[k + 2] = work2[k + 1]
 
-            for m in range(1, (k+2)+1):
-                season[(m-1) * self.period + j] = work2[m]
+            for m in range(1, (k + 2) + 1):
+                season[(m - 1) * self.period + j] = work2[m]
 
     def stl_ess(self, y: List, n: int, window: int, degree: bool, jump: int,
                 use_robust_weights: bool, robust_weights: List, ys: List, res: List):
@@ -262,8 +273,10 @@ class STLDecomposition(object):
             nleft = 1
             nright = n
 
-            for i in range(1, (n+1), newnj):
-                ys_out, ok = self.stl_est(y, n, window, degree, i, ys[i], nleft, nright, res, use_robust_weights, robust_weights)
+            for i in range(1, (n + 1), newnj):
+                ys_out, ok = self.stl_est(
+                    y, n, window, degree, i, ys[i], nleft, nright, res, use_robust_weights, robust_weights
+                )
                 ys[i] = ys_out
 
                 if not ok:
@@ -274,49 +287,58 @@ class STLDecomposition(object):
                 nsh = (window + 1) // 2
                 nleft = 1
                 nright = window
-                for i in range(1, (n+1)):
+                for i in range(1, (n + 1)):
                     if i > nsh and nright != n:
                         nleft += 1
                         nright += 1
-                    ys_out, ok = self.stl_est(y, n, window, degree, i, ys[i], nleft, nright, res, use_robust_weights, robust_weights)
+                    ys_out, ok = self.stl_est(
+                        y, n, window, degree, i, ys[i], nleft, nright, res, use_robust_weights, robust_weights
+                    )
                     ys[i] = ys_out
+
                     if not ok:
                         ys[i] = y[i]
             else:
                 nsh = (window + 1) // 2
-                for i in range(1, (n+1), newnj):
+                for i in range(1, (n + 1), newnj):
                     if i < nsh:
                         nleft = 1
                         nright = window
-                    elif i >= n-nsh+1:
+                    elif i >= n - nsh + 1:
                         nleft = n - window + 1
                         nright = n
                     else:
-                        nleft = i-nsh+1
+                        nleft = i - nsh + 1
                         nright = window + i - nsh
-                    ys_out, ok = self.stl_est(y, n, window, degree, i, ys[i], nleft, nright, res, use_robust_weights, robust_weights)
+                    ys_out, ok = self.stl_est(
+                        y, n, window, degree, i, ys[i], nleft, nright, res, use_robust_weights, robust_weights
+                    )
                     ys[i] = ys_out
+
                     if not ok:
                         ys[i] = y[i]
 
         if newnj != 1:
-            for i in range(1, (n-newnj+1), newnj):
-                delta = (ys[i+newnj] - ys[i]) / newnj
-                for j in range(i+1, (i+newnj-1)+1):
-                    ys[j] = ys[i]+delta*(j-i)
+            for i in range(1, (n - newnj + 1), newnj):
+                delta = (ys[i + newnj] - ys[i]) / newnj
+                for j in range(i + 1, (i + newnj - 1) + 1):
+                    ys[j] = ys[i] + delta * (j - i)
 
-            k = ((n-1)//newnj)*newnj+1
+            k = ((n - 1) // newnj) * newnj + 1
 
             if k != n:
-                ys_out, ok = self.stl_est(y, n, window, degree, n, ys[n], nleft, nright, res, use_robust_weights, robust_weights)
+                ys_out, ok = self.stl_est(
+                    y, n, window, degree, n, ys[n], nleft, nright, res, use_robust_weights, robust_weights
+                )
                 ys[n] = ys_out
+
                 if not ok:
                     ys[n] = y[n]
 
-                if k != n-1:
-                    delta = (ys[n] - ys[k])/n-k
-                    for j in range(k+1, (n-1)+1):
-                        ys[j] = ys[k]+delta*(j-k)
+                if k != n - 1:
+                    delta = (ys[n] - ys[k]) / n - k
+                    for j in range(k + 1, (n - 1) + 1):
+                        ys[j] = ys[k] + delta * (j - k)
 
         return ys
 
@@ -328,17 +350,17 @@ class STLDecomposition(object):
         if window > n:
             h += float((window - n) // 2)
 
-        h9 = 0.999*h
-        h1 = 0.001*h
+        h9 = 0.999 * h
+        h1 = 0.001 * h
         a = 0.0
 
-        for j in range(nleft, nright+1):
-            r = abs(j-xs)
+        for j in range(nleft, nright + 1):
+            r = abs(j - xs)
             if r <= h9:
                 if r <= h1:
                     w[j] = 1.0
                 else:
-                    w[j] = (1.0 - (r/h)**3)**3
+                    w[j] = (1.0 - (r / h) ** 3) ** 3
 
                 if use_robust_weights:
                     w[j] = robust_weights[j] * w[j]
@@ -352,26 +374,26 @@ class STLDecomposition(object):
         else:
             ok = True
 
-            for j in range(nleft, nright+1):
-                w[j] = w[j]/a
+            for j in range(nleft, nright + 1):
+                w[j] = w[j] / a
 
             if h > 0.0 and degree:
                 a = 0.0
-                for j in range(nleft, nright+1):
+                for j in range(nleft, nright + 1):
                     a += w[j] * float(j)
 
                 b = xs - a
                 c = 0.0
-                for j in range(nleft, nright+1):
-                    c += w[j]*(float(j)-a)**2
+                for j in range(nleft, nright + 1):
+                    c += w[j] * (float(j) - a) ** 2
 
-                if sqrt(c) > 0.001*rng:
-                    b = b/c
-                    for j in range(nleft, nright+1):
-                        w[j] = w[j]*(b*(float(j)-a)+1.0)
+                if sqrt(c) > 0.001 * rng:
+                    b = b / c
+                    for j in range(nleft, nright + 1):
+                        w[j] = w[j] * (b * (float(j) - a) + 1.0)
 
             ys = 0.0
-            for j in range(nleft, nright+1):
-                ys += w[j]*y[j]
+            for j in range(nleft, nright + 1):
+                ys += w[j] * y[j]
 
         return ys, ok

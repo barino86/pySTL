@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 
 import pandas as pd
 from anomaly_detection.main.utils import get_gran_and_period
@@ -31,11 +31,13 @@ class STLDecomp(object):
             raise ValueError(f"Length of the x_axis must be the same as the length of the data: {self.data.shape[0]}")
         self.__x_axis = value
 
-    def _build_plot(self):
+    def _build_plot(self, figsize: Union[Tuple[int, int], None] = None):
         import matplotlib.pyplot as plt
         from pandas._libs.tslibs.timestamps import Timestamp
+
         plt.style.use('ggplot')
-        fig, (raw, seas, trend, rem) = plt.subplots(nrows=4, ncols=1, figsize=(7, 8), sharex=True)
+        figsize = figsize or (8, 4)
+        fig, (raw, seas, trend, rem) = plt.subplots(nrows=4, ncols=1, figsize=figsize, sharex=True)
 
         # Build Raw Plot
         raw.plot(self.x_axis, self.data['value'], color="#00AED9", linewidth=1)
@@ -84,35 +86,44 @@ class STLDecomp(object):
             import matplotlib.dates as mdates
             fmt = mdates.DateFormatter('%Y-%m-%d')
             rem.xaxis.set_major_formatter(fmt)
+            rem.xaxis.set_major_locator(mdates.WeekdayLocator(interval=1))
+            rem.xaxis.set_minor_locator(mdates.DayLocator())
             fig.autofmt_xdate()
 
         return fig
 
-    def display_plot(self) -> None:
-        fig = self._build_plot()
+    def display_plot(self, figsize: Union[Tuple[int, int], None] = None) -> None:
+        fig = self._build_plot(figsize)
         fig.show()
 
-    def save_plot(self, image_path: str = None) -> None:
-        fig = self._build_plot()
+    def save_plot(self, image_path: str, figsize: Union[Tuple[int, int], None] = None) -> None:
+        fig = self._build_plot(figsize)
         fig.savefig(image_path)
         print(f"Plot Saved to '{image_path}'")
 
 
 class AnomDetect(object):
 
-    def __init__(self, orig: pd.DataFrame, labeled: pd.DataFrame, anoms: pd.DataFrame, stl: STLDecomp):
+    def __init__(self, orig: pd.DataFrame, labeled: pd.DataFrame, anoms: pd.DataFrame, stl: STLDecomp, args: dict):
         self.original: pd.DataFrame = orig
         self.labeled_data: pd.DataFrame = labeled
         self.anomalies: pd.DataFrame = anoms
         self.anom_percentage = anoms.shape[0] / labeled.shape[0]
         self.stl: STLDecomp = stl
+        self.args = args
 
-    def _build_plot(self):
+    def _build_plot(self, figsize: Union[Tuple[int, int], None] = None):
         import matplotlib.pyplot as plt
         from pandas._libs.tslibs.timestamps import Timestamp
-        fig, ax = plt.subplots(figsize=(8, 6))
 
-        ax.plot(self.labeled_data['timestamp'], self.labeled_data['value'], color="#00AED9", linewidth=1, zorder=1)
+        plt.rcParams.update(plt.rcParamsDefault)
+        figsize = figsize or (8, 4)
+        fig, ax = plt.subplots(figsize=figsize)
+
+        ax.plot(self.labeled_data['timestamp'].values,
+                self.labeled_data['value'].values,
+                color="#00AED9", linewidth=1, zorder=1)
+
         for ix, row in enumerate(self.labeled_data.itertuples(index=False)):
 
             # Anomaly points
@@ -134,15 +145,24 @@ class AnomDetect(object):
             import matplotlib.dates as mdates
             fmt = mdates.DateFormatter('%Y-%m-%d')
             ax.xaxis.set_major_formatter(fmt)
+            ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=1))
+            ax.xaxis.set_minor_locator(mdates.DayLocator())
             fig.autofmt_xdate()
+
+        ax.set_xlim(self.labeled_data['timestamp'].min(), self.labeled_data['timestamp'].max())
+
+        ax.set(ylabel='Value')
+        ax.set_xlabel(xlabel=ax.get_xlabel(), fontdict=dict(fontsize='x-small'))
+        ax.set_title(label="This is the title line1")
+        ax.set_title(label="This is the title line2")
 
         return fig
 
-    def display_plot(self) -> None:
-        fig = self._build_plot()
+    def display_plot(self, figsize: Union[Tuple[int, int], None] = None) -> None:
+        fig = self._build_plot(figsize)
         fig.show()
 
-    def save_plot(self, image_path: str = None) -> None:
-        fig = self._build_plot()
+    def save_plot(self, image_path: str, figsize: Union[Tuple[int, int], None] = None) -> None:
+        fig = self._build_plot(figsize)
         fig.savefig(image_path)
         print(f"Plot Saved to '{image_path}'")

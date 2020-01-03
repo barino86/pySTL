@@ -10,29 +10,6 @@ from anomaly_detection.main.utils import get_gran_and_period, mad
 from anomaly_detection.main.stl_decomposition.STLDecomposition import STLDecomposition
 
 
-def calculate_e_value(df: pd.DataFrame, calc='orig', weights=None) -> pd.Series:
-    median_val = df['value'].median()
-
-    e_value = df['seasonal']
-    exp_value_median = e_value + median_val
-    exp_value_trend = e_value + df['trend']
-
-    # Calc e_value based on pythonic 'switch'
-    if calc == 'orig':
-        exp_value = exp_value_median
-    elif calc == 'trend':
-        exp_value = exp_value_trend
-    elif calc == 'hybrid':
-        exp_value = (exp_value_median * 0.5) + (exp_value_trend * 0.5)
-    elif calc == 'other':
-        exp_value = (exp_value_median * weights['median']) + (exp_value_trend * weights['trend'])
-    else:
-        raise ValueError("incorrect 'calc'")
-
-    exp_value[exp_value < 0] = 0
-    return exp_value
-
-
 class AnomalyDetection(object):
 
     def __init__(self,
@@ -40,7 +17,6 @@ class AnomalyDetection(object):
                  alpha: float = 0.05,
                  direction: str = 'pos',
                  threshold: str = 'None',
-                 e_value_incl: bool = True,
                  verbose: bool = False):
 
         if max_anoms > 0.49 or max_anoms <= 0:
@@ -52,9 +28,6 @@ class AnomalyDetection(object):
         if threshold.lower() not in ['none', 'med_max', 'p95', 'p99']:
             raise ValueError("'threshold' options are one of: {'None', 'med_max', 'p95', 'p99'}")
 
-        if not isinstance(e_value_incl, bool):
-            raise ValueError("'e_value_incl' must be either True or False")
-
         if direction.lower() not in ['pos', 'neg', 'both']:
             raise ValueError("'direction' options are one of: {'pos', 'neg', 'both'}")
 
@@ -62,7 +35,6 @@ class AnomalyDetection(object):
         self.alpha = alpha
         self.direction = direction
         self.threshold = threshold
-        self.e_value_incl = e_value_incl
         self.verbose = verbose
 
     @staticmethod
@@ -100,7 +72,6 @@ class AnomalyDetection(object):
         last_date = df.iloc[max(df.index), 0]
         # Subset x into piecewise_median_period_weeks chunks
         for i in range(0, num_obs, num_obs_in_period):
-            i = 0
             start_date = df.iloc[i, 0]
             end_date = min(start_date + dt.timedelta(days=num_days_in_period), last_date)
             # if there is at least 'num_days_in_period' days left, subset it,
@@ -347,9 +318,41 @@ class AnomalyDetection(object):
             stl=models.STLDecomp(
                 stl_data=all_data_decomp[['value', 'seasonal', 'trend', 'remainder']],
                 x_axis=all_data_decomp['timestamp']
+            ),
+            args=dict(
+                max_anoms=self.max_anoms,
+                alpha=self.alpha,
+                direction=self.direction,
+                threshold=self.threshold,
+                e_value_calc=e_value_calc,
+                data_seasonal=data_seasonal,
+                longterm=longterm,
+                periods_in_longterm=periods_in_longterm
             )
         )
 
     def from_vector(self, vec, direction, longterm, periods_in_longterm, e_value_calc, data_seasonal):
         pass
 
+
+def calculate_e_value(df: pd.DataFrame, calc='orig', weights=None) -> pd.Series:
+    median_val = df['value'].median()
+
+    e_value = df['seasonal']
+    exp_value_median = e_value + median_val
+    exp_value_trend = e_value + df['trend']
+
+    # Calc e_value based on calc string
+    if calc == 'orig':
+        exp_value = exp_value_median
+    elif calc == 'trend':
+        exp_value = exp_value_trend
+    elif calc == 'hybrid':
+        exp_value = (exp_value_median * 0.5) + (exp_value_trend * 0.5)
+    elif calc == 'other':
+        exp_value = (exp_value_median * weights['median']) + (exp_value_trend * weights['trend'])
+    else:
+        raise ValueError("incorrect 'calc'")
+
+    exp_value[exp_value < 0] = 0
+    return exp_value
